@@ -1,8 +1,11 @@
 package com.jclin.sunshine;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -12,6 +15,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -27,11 +31,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 
-/**
- * A placeholder fragment containing a simple view.
- */
 public class ForecastFragment extends Fragment
 {
     private ArrayAdapter<String> _forecastAdapter;
@@ -54,24 +54,27 @@ public class ForecastFragment extends Fragment
     {
         View mainFragmentView = inflater.inflate(R.layout.forecast_fragment, container, false);
 
-        String[] fakeData = {
-                "Today - Sunny - 88/63",
-                "Tomorrow - Foggy - 70/46",
-                "Weds - Cloudy - 72/63",
-                "Thurs - Rainy - 64/51",
-                "Fri - Foggy - 70/46",
-                "Sat - Sunny - 76/68"
-        };
-
         _forecastAdapter = new ArrayAdapter<>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
-                new ArrayList<>(Arrays.asList(fakeData))
+                new ArrayList<String>()
         );
 
         ListView forecastListView = (ListView) mainFragmentView.findViewById(R.id.listview_forecast);
         forecastListView.setAdapter(_forecastAdapter);
+
+        forecastListView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+            {
+                Intent intent = new Intent(getActivity(), DetailActivity.class);
+                intent.putExtra(Intent.EXTRA_TEXT, _forecastAdapter.getItem(position));
+
+                startActivity(intent);
+            }
+        });
 
         return mainFragmentView;
     }
@@ -83,20 +86,28 @@ public class ForecastFragment extends Fragment
     }
 
     @Override
+    public void onStart()
+    {
+        super.onStart();
+        updateForecast();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item)
     {
         if (item.getItemId() == R.id.action_refresh)
         {
-            onRefreshClick();
+            updateForecast();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    private void onRefreshClick()
+    private void updateForecast()
     {
-        new FetchWeatherTask().execute("94043");
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        new FetchWeatherTask().execute(Preferences.getLocation(getActivity()));
     }
 
     //region FetchWeatherTask class
@@ -194,7 +205,8 @@ public class ForecastFragment extends Fragment
         /* The date/time conversion code is going to be moved outside the asynctask later,
          * so for convenience we're breaking it out into its own method now.
          */
-        private String getReadableDateString(long time){
+        private String getReadableDateString(long time)
+        {
             // Because the API returns a unix timestamp (measured in seconds),
             // it must be converted to milliseconds in order to be converted to valid date.
             SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
@@ -204,7 +216,20 @@ public class ForecastFragment extends Fragment
         /**
          * Prepare the weather high/lows for presentation.
          */
-        private String formatHighLows(double high, double low) {
+        private String formatHighLows(double high, double low)
+        {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String units = prefs.getString(
+                getString(R.string.pref_units_key),
+                getString(R.string.celsius)
+                );
+
+            if (units.equals(getString(R.string.fahrenheit)))
+            {
+                high = Temperature.celsiusToFahrenheit(high);
+                low  = Temperature.celsiusToFahrenheit(low);
+            }
+
             // For presentation, assume the user doesn't care about tenths of a degree.
             long roundedHigh = Math.round(high);
             long roundedLow = Math.round(low);
@@ -216,7 +241,7 @@ public class ForecastFragment extends Fragment
         /**
          * Take the String representing the complete forecast in JSON Format and
          * pull out the data we need to construct the Strings needed for the wireframes.
-         *
+         * <p/>
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
          * into an Object hierarchy for us.
          */
@@ -252,7 +277,8 @@ public class ForecastFragment extends Fragment
             dayTime = new Time();
 
             String[] resultStrs = new String[numDays];
-            for(int i = 0; i < weatherArray.length(); i++) {
+            for (int i = 0; i < weatherArray.length(); i++)
+            {
                 // For now, using the format "Day, description, hi/low"
                 String day;
                 String description;
@@ -266,7 +292,7 @@ public class ForecastFragment extends Fragment
                 // "this saturday".
                 long dateTime;
                 // Cheating to convert this to UTC time, which is what we want anyhow
-                dateTime = dayTime.setJulianDay(julianStartDay+i);
+                dateTime = dayTime.setJulianDay(julianStartDay + i);
                 day = getReadableDateString(dateTime);
 
                 // description is in a child array called "weather", which is 1 element long.
