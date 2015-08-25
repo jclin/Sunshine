@@ -1,6 +1,20 @@
 <resources>
     <string name="app_name">Sunshine</string>
     <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="details_settings">Settings</string>
     <string name="action_refresh">Refresh</string>
+    <string name="title_activity_detail">DetailActivity</string>
+    <string name="SettingsActivity">Settings</string>
+    <string name="pref_location_label">Location</string>
+    <string name="pref_location_default" translatable="false">94303</string>
+    <string name="pref_location_key" translatable="false">location</string>
+    <string name="pref_units_key" translatable="false">units</string>
+    <string name="pref_units_label">Units</string>
+    <string name="celsius_label">Celsius</string>
+    <string name="fahrenheit_label">Fahrenheit</string>
+    <string name="celsius" translatable="false">Celsius</string>
+    <string name="fahrenheit" translatable="false">Fahrenheit</string>
+    <string name="view_location_label">View Location</string>
+    <string name="toast_activity_not_found_view_location">No Activity found to view location</string>
+    <string name="share_label">Share</string>
 </resources>
